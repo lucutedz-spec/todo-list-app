@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Camera Monitoring</title>
+  <style>
+    :root {
+      --bg: #050607;
+      --panel: #0d1117;
+      --panel-2: #111923;
+      --sidebar: #10151c;
+      --sidebar-2: #171d24;
+      --sidebar-3: #1d252d;
+      --line: rgba(255,255,255,0.08);
+      --line-2: rgba(255,255,255,0.12);
+      --text: #edf2f7;
+      --muted: #9aa7b8;
+      --muted-2: #6d7a88;
+      --blue: #2f8bff;
+      --blue-2: #1a5de5;
+      --green: #39d98a;
+      --red: #f85149;
+      --icon: rgba(255,255,255,0.75);
+      --shadow: rgba(0,0,0,0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      overflow: hidden;
+    }
+
+    .app {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+    }
+
+    .topbar {
+      height: 54px;
+      background: rgba(15,18,21,0.96);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px 0 14px;
+      box-shadow: inset 0 -1px 0 rgba(255,255,255,0.02);
+    }
+
+    .top-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand {
+      font-size: 14px;
+      font-weight: 700;
+      color: #ebf0ff;
+      white-space: nowrap;
+    }
+
+    .nav-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex-wrap: nowrap;
+    }
+
+    .tab {
+      background: transparent;
+      border: 1px solid var(--line);
+      padding: 6px 12px;
+      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 28px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .tab:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.15);
+    }
+
+    .tab.primary {
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.9);
+    }
+
+    .tab.primary::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.35);
+      display: inline-block;
+    }
+
+    .tab.add {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      justify-content: center;
+      font-size: 18px;
+      line-height: 1;
+      border-radius: 5px;
+      color: #dfe9ff;
+    }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.02);
+      padding: 5px 9px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+    }
+
+    .user-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.8);
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.06);
+    }
+
+    .icon-stack {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.8);
+    }
+
+    .icon {
+      opacity: 0.8;
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      position: relative;
+    }
+
+    .icon.bell::before {
+      content: "";
+      position: absolute;
+      inset: 2px 4px 3px 4px;
+      border: 2px solid rgba(255,255,255,0.8);
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+    }
+
+    .icon.bell::after {
+      content: "";
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      bottom: 1px;
+      height: 2px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 2px;
+    }
+
+    .icon.menu::before,
+    .icon.menu::after,
+    .icon.menu span {
+      content: "";
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      height: 2px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 2px;
+    }
+
+    .icon.menu::before { top: 3px; }
+    .icon.menu span { top: 6px; }
+    .icon.menu::after { top: 9px; }
+
+    .shell {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      background: rgba(7,10,13,1);
+    }
+
+    .sidebar {
+      width: 220px;
+      background: linear-gradient(180deg, #11171d 0%, #0d1117 100%);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .sidebar-header {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px 0 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.01);
+    }
+
+    .sidebar-header .left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #edf4ff;
+      font-weight: 700;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .sidebar-header .logo {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #1d7bf7, #4db1ff);
+      position: relative;
+      box-shadow: 0 0 12px rgba(47,139,255,0.5);
+    }
+
+    .sidebar-header .logo::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border: 2px solid rgba(255,255,255,0.85);
+      border-left: none;
+      border-bottom: none;
+      transform: rotate(45deg);
+    }
+
+    .sidebar-pane {
+      padding: 12px 10px 10px;
+      overflow: auto;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .sidebar-section {
+      margin-bottom: 10px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.015);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .menu-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid var(--line);
+      font-weight: 600;
+    }
+
+    .menu-title .add-btn {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 10px;
+      transition: all 0.2s;
+    }
+
+    .menu-title .add-btn:hover {
+      background: rgba(47,139,255,0.3);
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    .caret {
+      width: 7px;
+      height: 7px;
+      border-left: 1.5px solid rgba(255,255,255,0.7);
+      border-bottom: 1.5px solid rgba(255,255,255,0.7);
+      transform: rotate(-45deg);
+      margin-top: -2px;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 10px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.75);
+      border-left: 2px solid transparent;
+      background: rgba(255,255,255,0.01);
+      position: relative;
+    }
+
+    .menu-item.active {
+      color: #f2f9ff;
+      background: rgba(45,102,191,0.12);
+      border-left-color: var(--blue);
+      box-shadow: inset 0 0 0 1px rgba(47,139,255,0.05);
+    }
+
+    .menu-item .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.4);
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .menu-item.active .dot {
+      background: var(--blue);
+      box-shadow: 0 0 10px rgba(47,139,255,0.6);
+    }
+
+    .tree {
+      padding: 4px 0;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .tree .item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px 7px 16px;
+      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+      position: relative;
+      cursor: move;
+      transition: all 0.2s;
+      border-left: 2px solid transparent;
+    }
+
+    .tree .item:hover {
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.9);
+    }
+
+    .tree .item.dragging {
+      opacity: 0.5;
+      background: rgba(47,139,255,0.2);
+    }
+
+    .tree .item.active {
+      color: var(--text);
+      background: rgba(255,255,255,0.02);
+      border-left-color: var(--blue);
+    }
+
+    .tree .item:before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-left: 1.5px solid rgba(255,255,255,0.4);
+      border-bottom: 1.5px solid rgba(255,255,255,0.4);
+      transform: rotate(-45deg);
+      margin-left: -2px;
+      opacity: 0.7;
+      display: none;
+    }
+
+    .tree .item .name {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tree .item .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+
+    .tree .item .status-dot.offline {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .tree .item .delete-btn {
+      width: 14px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      cursor: pointer;
+      font-size: 10px;
+      color: var(--red);
+      transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+
+    .tree .item:hover .delete-btn {
+      opacity: 1;
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      background: #050709;
+    }
+
+    .main-top {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      padding: 0 10px 0 10px;
+      background: rgba(255,255,255,0.01);
+    }
+
+    .main-tabs {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: nowrap;
+      overflow: hidden;
+    }
+
+    .main-tab {
+      font-size: 12px;
+      color: rgba(255,255,255,0.75);
+      padding: 6px 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.01);
+      border-radius: 4px;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .main-tab:hover {
+      background: rgba(255,255,255,0.03);
+    }
+
+    .main-tab.active {
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.95);
+    }
+
+    .main-utilities {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: rgba(255,255,255,0.65);
+      font-size: 12px;
+    }
+
+    .utility {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+    }
+
+    .utility .mini {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.6);
+      display: inline-block;
+    }
+
+    .content {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      background: #06080a;
+      padding: 8px 8px 0 8px;
+    }
+
+    .content.drag-over {
+      background: rgba(47,139,255,0.05);
+      border: 2px dashed var(--blue);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 4px;
+      align-content: start;
+      padding-bottom: 8px;
+    }
+
+    .camera {
+      position: relative;
+      height: 140px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.38)),
+        radial-gradient(circle at 35% 32%, rgba(255,255,255,0.16), transparent 22%),
+        linear-gradient(145deg, #1b1d20 0%, #0b0e11 100%);
+      overflow: hidden;
+      box-shadow: inset 0 0 35px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .camera:hover {
+      border-color: rgba(255,255,255,0.15);
+    }
+
+    .camera::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(0,0,0,0.08), rgba(255,255,255,0.06), rgba(0,0,0,0.08)),
+        repeating-linear-gradient(
+          0deg,
+          rgba(255,255,255,0.015) 0px,
+          rgba(255,255,255,0.015) 1px,
+          transparent 1px,
+          transparent 4px
+        );
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .camera.selected {
+      border-color: rgba(99, 165, 255, 0.75);
+      box-shadow: inset 0 0 0 1px rgba(99,165,255,0.45), 0 0 20px rgba(28,128,255,0.16);
+    }
+
+    .camera .status {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(62,180,109,0.95);
+      box-shadow: 0 0 8px rgba(62,180,109,0.7);
+      z-index: 2;
+    }
+
+    .camera .status.offline {
+      background: rgba(255,255,255,0.36);
+      box-shadow: none;
+    }
+
+    .camera .label {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 8px 8px 9px;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.35));
+      z-index: 2;
+    }
+
+    .camera .title {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.95);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.3;
+    }
+
+    .camera .meta {
+      margin-top: 2px;
+      font-size: 10px;
+      color: rgba(235,240,245,0.72);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.3;
+    }
+
+    .camera .delete-icon {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 20px;
+      height: 20px;
+      background: rgba(0,0,0,0.6);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.2s;
+      z-index: 3;
+    }
+
+    .camera:hover .delete-icon {
+      opacity: 1;
+    }
+
+    .camera .delete-icon:hover {
+      background: var(--red);
+    }
+
+    .footer {
+      height: 62px;
+      background: rgba(12,15,18,0.96);
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      gap: 12px;
+    }
+
+    .left-controls,
+    .center-controls,
+    .right-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .left-controls {
+      flex: 1;
+      justify-content: flex-start;
+    }
+
+    .center-controls {
+      flex: 2;
+      justify-content: center;
+    }
+
+    .right-controls {
+      flex: 1;
+      justify-content: flex-end;
+    }
+
+    .icon-btn {
+      width: 18px;
+      height: 18px;
+      position: relative;
+      opacity: 0.9;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .icon-btn:hover { opacity: 1; }
+
+    .icon-btn.prev::before,
+    .icon-btn.prev::after,
+    .icon-btn.next::before,
+    .icon-btn.next::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+
+    .icon-btn.prev::before {
+      left: 3px;
+      border-right: 8px solid rgba(255,255,255,0.9);
+    }
+
+    .icon-btn.prev::after {
+      left: 8px;
+      border-right: 8px solid rgba(255,255,255,0.9);
+    }
+
+    .icon-btn.next::before {
+      right: 3px;
+      border-left: 8px solid rgba(255,255,255,0.9);
+    }
+
+    .icon-btn.next::after {
+      right: 8px;
+      border-left: 8px solid rgba(255,255,255,0.9);
+    }
+
+    .icon-btn.play::before {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 7px;
+      border-left: 9px solid rgba(255,255,255,0.9);
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+
+    .timeline {
+      width: min(560px, 100%);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .track {
+      position: relative;
+      width: 100%;
+      height: 3px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .track-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 48%;
+      background: linear-gradient(90deg, #2f8bff, #7bb6ff);
+      border-radius: inherit;
+    }
+
+    .track-knob {
+      position: absolute;
+      left: 48%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px;
+      height: 12px;
+      background: #fff;
+      border: 2px solid rgba(47,139,255,0.9);
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(47,139,255,0.15);
+    }
+
+    .speed {
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.02);
+      padding: 3px 8px;
+      border-radius: 4px;
+      min-width: 36px;
+      text-align: center;
+    }
+
+    .status-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.02);
+      color: rgba(255,255,255,0.7);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+
+    .status-box .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 10px rgba(57,217,138,0.7);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 24px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      transform: scale(0.95);
+      transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1);
+    }
+
+    .modal h2 {
+      margin: 0 0 20px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--blue);
+      background: rgba(47,139,255,0.08);
+      box-shadow: 0 0 0 3px rgba(47,139,255,0.1);
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 4px;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--blue-2);
+      box-shadow: 0 0 20px rgba(47,139,255,0.3);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.9);
+      border: 1px solid var(--line);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.15);
+    }
+
+    @media (max-width: 980px) {
+      .sidebar {
+        width: 180px;
+      }
+      .grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      }
+      .timeline {
+        width: min(420px, 100%);
+      }
+    }
+
+    @media (max-width: 760px) {
+      .sidebar {
+        display: none;
+      }
+      .topbar {
+        padding: 0 8px;
+      }
+      .nav-group {
+        gap: 6px;
+      }
+      .tab {
+        padding: 6px 8px;
+      }
+      .grid {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      }
+      .status-box {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="top-left">
+        <div class="brand">ITS Toàn Tuyến</div>
+        <div class="nav-group">
+          <div class="tab primary">Bản xuất</div>
+          <div class="tab">Tìm kiếm</div>
+          <div class="tab">Trình quản lý báo động</div>
+          <div class="tab add" id="addViewBtn">＋</div>
+        </div>
+      </div>
+
+      <div class="top-right">
+        <div class="user-pill">
+          <span class="user-dot"></span>
+          <span>Khởi tạo toàn</span>
+        </div>
+        <div class="icon-stack">
+          <span class="icon bell"></span>
+          <span class="icon menu"><span></span></span>
+        </div>
+      </div>
+    </header>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="left">
+            <span class="logo"></span>
+            <span>XProtect</span>
+          </div>
+        </div>
+
+        <div class="sidebar-pane">
+          <div class="sidebar-section">
+            <div class="menu-title">
+              <span>Chế độ xem</span>
+              <span class="caret"></span>
+            </div>
+            <div class="menu-item active">
+              <span class="dot"></span>
+              <span>ITS Toàn Tuyến</span>
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <div class="menu-title">
+              <span>Camera</span>
+              <span class="add-btn" id="addCameraBtn" title="Thêm camera">＋</span>
+            </div>
+
+            <div class="tree" id="cameraList">
+              <!-- Camera items will be inserted here dynamically -->
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <div class="menu-title">
+              <span>Nhóm Camera</span>
+              <span class="caret"></span>
+            </div>
+            <div class="tree">
+              <div class="item">Tổng Hòa Bình</div>
+              <div class="item">ETC Điện Cát</div>
+              <div class="item">ETC NSDC</div>
+              <div class="item">ETC Quỳnh Mại</div>
+              <div class="item">ETC Quỳnh Vinh</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="main-top">
+          <div class="main-tabs">
+            <div class="main-tab active">ITS Toàn Tuyến</div>
+            <div class="main-tab">Camera</div>
+          </div>
+
+          <div class="main-utilities">
+            <div class="utility"><span class="mini"></span> Xuất</div>
+            <div class="utility"><span class="mini"></span> Thiết lập</div>
+          </div>
+        </div>
+
+        <div class="content" id="content">
+          <div class="grid" id="grid"></div>
+        </div>
+
+        <div class="footer">
+          <div class="left-controls">
+            <div class="icon-btn prev"></div>
+            <div class="icon-btn play"></div>
+            <div class="icon-btn next"></div>
+          </div>
+
+          <div class="center-controls">
+            <div class="timeline">
+              <div class="track">
+                <div class="track-fill"></div>
+                <div class="track-knob"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="right-controls">
+            <div class="status-box">
+              <span class="dot"></span>
+              <span>Online</span>
+            </div>
+            <div class="speed">2x</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal thêm camera -->
+  <div class="modal-overlay" id="cameraModal">
+    <div class="modal">
+      <h2>Thêm Camera Mới</h2>
+      <form id="cameraForm">
+        <div class="form-group">
+          <label for="cameraName">Tên Camera</label>
+          <input type="text" id="cameraName" placeholder="VD: PTZ_KM440_90" required>
+        </div>
+        <div class="form-group">
+          <label for="cameraIP">Địa chỉ IP</label>
+          <input type="text" id="cameraIP" placeholder="192.168.1.100" required>
+        </div>
+        <div class="form-group">
+          <label for="cameraUsername">Tài khoản</label>
+          <input type="text" id="cameraUsername" placeholder="admin" required>
+        </div>
+        <div class="form-group">
+          <label for="cameraPassword">Mật khẩu</label>
+          <input type="password" id="cameraPassword" placeholder="••••••••" required>
+        </div>
+        <div class="form-group">
+          <label for="cameraPort">Port</label>
+          <input type="number" id="cameraPort" placeholder="8000" value="8000">
+        </div>
+        <div class="form-group">
+          <label for="cameraStatus">Trạng thái</label>
+          <select id="cameraStatus">
+            <option value="online">Online</option>
+            <option value="offline">Offline</option>
+          </select>
+        </div>
+        <div class="modal-buttons">
+          <button type="button" class="btn btn-secondary" id="cancelBtn">Hủy</button>
+          <button type="submit" class="btn btn-primary">Thêm Camera</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Camera Data Store
+    const cameraStore = {
+      cameras: JSON.parse(localStorage.getItem('cameras')) || [],
+      addCamera(camera) {
+        const id = Date.now().toString();
+        this.cameras.push({ id, ...camera, addedAt: new Date().toISOString() });
+        this.save();
+        return id;
+      },
+      deleteCamera(id) {
+        this.cameras = this.cameras.filter(c => c.id !== id);
+        this.save();
+      },
+      save() {
+        localStorage.setItem('cameras', JSON.stringify(this.cameras));
+      }
+    };
+
+    // Modal Management
+    const modalManager = {
+      modal: document.getElementById('cameraModal'),
+      form: document.getElementById('cameraForm'),
+      
+      open() {
+        this.modal.classList.add('active');
+        document.getElementById('cameraName').focus();
+      },
+      
+      close() {
+        this.modal.classList.remove('active');
+        this.form.reset();
+      },
+      
+      init() {
+        document.getElementById('addCameraBtn').addEventListener('click', () => this.open());
+        document.getElementById('cancelBtn').addEventListener('click', () => this.close());
+        document.getElementById('addViewBtn').addEventListener('click', () => this.open());
+        
+        this.modal.addEventListener('click', (e) => {
+          if (e.target === this.modal) this.close();
+        });
+        
+        this.form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          this.handleSubmit();
+        });
+      },
+      
+      handleSubmit() {
+        const camera = {
+          name: document.getElementById('cameraName').value,
+          ip: document.getElementById('cameraIP').value,
+          username: document.getElementById('cameraUsername').value,
+          password: document.getElementById('cameraPassword').value,
+          port: document.getElementById('cameraPort').value,
+          status: document.getElementById('cameraStatus').value
+        };
+        
+        cameraStore.addCamera(camera);
+        this.close();
+        ui.renderCameraList();
+      }
+    };
+
+    // UI Management
+    const ui = {
+      grid: document.getElementById('grid'),
+      content: document.getElementById('content'),
+      cameraList: document.getElementById('cameraList'),
+      displayedCameras: [], // Track displayed cameras
+      
+      renderCameraList() {
+        this.cameraList.innerHTML = '';
+        
+        if (cameraStore.cameras.length === 0) {
+          this.cameraList.innerHTML = '<div style="padding: 12px; color: rgba(255,255,255,0.5); font-size: 12px;">Chưa có camera nào</div>';
+          return;
+        }
+        
+        cameraStore.cameras.forEach(camera => {
+          const item = document.createElement('div');
+          item.className = 'item';
+          item.draggable = true;
+          item.dataset.cameraId = camera.id;
+          
+          const onlineClass = camera.status === 'online' ? '' : 'offline';
+          
+          item.innerHTML = `
+            <span class="status-dot ${onlineClass}"></span>
+            <span class="name">${camera.name}</span>
+            <span class="delete-btn">✕</span>
+          `;
+          
+          // Delete button
+          item.querySelector('.delete-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            cameraStore.deleteCamera(camera.id);
+            ui.renderCameraList();
+            ui.renderGrid();
+          });
+          
+          // Drag events
+          item.addEventListener('dragstart', (e) => {
+            e.dataTransfer.effectAllowed = 'copy';
+            e.dataTransfer.setData('cameraId', camera.id);
+            item.classList.add('dragging');
+          });
+          
+          item.addEventListener('dragend', () => {
+            item.classList.remove('dragging');
+          });
+          
+          this.cameraList.appendChild(item);
+        });
+      },
+      
+      renderGrid() {
+        this.grid.innerHTML = '';
+        
+        this.displayedCameras.forEach((camera, index) => {
+          this.createCameraCell(camera, index);
+        });
+      },
+      
+      createCameraCell(camera, index) {
+        const cell = document.createElement('div');
+        cell.className = 'camera' + (index === 0 ? ' selected' : '');
+        cell.dataset.cameraId = camera.id;
+        
+        const dot = document.createElement('div');
+        dot.className = 'status ' + (camera.status === 'offline' ? 'offline' : '');
+        
+        const deleteIcon = document.createElement('div');
+        deleteIcon.className = 'delete-icon';
+        deleteIcon.innerHTML = '✕';
+        deleteIcon.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.removeCameraFromDisplay(camera.id);
+        });
+        
+        const label = document.createElement('div');
+        label.className = 'label';
+        
+        const title = document.createElement('div');
+        title.className = 'title';
+        title.textContent = camera.name;
+        
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = `${camera.ip}:${camera.port} • ${camera.username}`;
+        
+        const hue = (index * 19) % 360;
+        
+        cell.style.background =
+          "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.35))," +
+          "radial-gradient(circle at 38% 28%, hsla(" + hue + ", 55%, 72%, 0.18), transparent 22%)," +
+          "linear-gradient(145deg, #1c1f22 0%, #0a0d10 100%)";
+        
+        label.appendChild(title);
+        label.appendChild(meta);
+        
+        cell.appendChild(deleteIcon);
+        cell.appendChild(dot);
+        cell.appendChild(label);
+        
+        cell.addEventListener('click', () => {
+          document.querySelectorAll('.camera').forEach(c => c.classList.remove('selected'));
+          cell.classList.add('selected');
+        });
+        
+        this.grid.appendChild(cell);
+      },
+      
+      removeCameraFromDisplay(cameraId) {
+        this.displayedCameras = this.displayedCameras.filter(c => c.id !== cameraId);
+        this.renderGrid();
+      },
+      
+      setupDragDrop() {
+        this.content.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          this.content.classList.add('drag-over');
+        });
+        
+        this.content.addEventListener('dragleave', () => {
+          this.content.classList.remove('drag-over');
+        });
+        
+        this.content.addEventListener('drop', (e) => {
+          e.preventDefault();
+          this.content.classList.remove('drag-over');
+          
+          const cameraId = e.dataTransfer.getData('cameraId');
+          const camera = cameraStore.cameras.find(c => c.id === cameraId);
+          
+          if (camera && !this.displayedCameras.find(c => c.id === cameraId)) {
+            this.displayedCameras.push(camera);
+            this.renderGrid();
+          }
+        });
+      },
+      
+      init() {
+        this.renderCameraList();
+        this.setupDragDrop();
+      }
+    };
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      modalManager.init();
+      ui.init();
+      
+      // Add default cameras if none exist
+      if (cameraStore.cameras.length === 0) {
+        const defaultCameras = [
+          { name: 'PTZ_KM440_90_NS_DC', ip: '192.168.1.100', username: 'admin', password: 'admin123', port: '8000', status: 'online' },
+          { name: 'PTZ_KM430_90_NS_DC', ip: '192.168.1.101', username: 'admin', password: 'admin123', port: '8000', status: 'online' },
+          { name: 'PTZ_KM382_90_NS_DC', ip: '192.168.1.102', username: 'admin', password: 'admin123', port: '8000', status: 'offline' }
+        ];
+        
+        defaultCameras.forEach(cam => cameraStore.addCamera(cam));
+        ui.renderCameraList();
+      }
+    });
+  </script>
+</body>
+</html>
